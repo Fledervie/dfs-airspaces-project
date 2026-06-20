@@ -1,0 +1,16 @@
+{
+  "name": "windy-plugin-dfs-airspaces",
+  "version": "0.1.0",
+  "icon": "✈",
+  "title": "DFS Airspaces",
+  "description": "DFS Airspaces",
+  "author": "Fledervie",
+  "repository": "https://github.com/Fledervie/dfs-airspace-data",
+  "desktopUI": "rhpane",
+  "mobileUI": "fullscreen",
+  "routerPath": "/dfs-airspaces",
+  "private": true,
+  "built": 1781974081349,
+  "builtReadable": "2026-06-20T16:48:01.349Z",
+  "screenshot": "screenshot.jpg"
+}
