@@ -1,0 +1,49 @@
+name: Update EDR GeoJSON
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # daily at 03:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update-edr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install shapely lxml requests
+
+      - name: Run converter script
+        working-directory: ${{ github.workspace }}
+        run: |
+          # The converter should fetch any remote AIXM files itself or read local inputs
+          python backend-data/convert_aixm_edr_to_geojson.py
+
+      - name: Commit and push generated GeoJSON (if changed)
+        env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          git config user.name "${GIT_AUTHOR_NAME}"
+          git config user.email "${GIT_AUTHOR_EMAIL}"
+          git add backend-data/edr_from_aixm.geojson || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Auto-update EDR GeoJSON"
+            git push
+          else
+            echo "No changes to commit"
+          fi
