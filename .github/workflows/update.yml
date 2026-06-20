@@ -1,49 +1,52 @@
-name: Update EDR GeoJSON
+name: Update Airspaces Daily
 
 on:
   schedule:
-    - cron: '0 3 * * *' # daily at 03:00 UTC
-  workflow_dispatch: {}
-
-permissions:
-  contents: write
+    - cron: '0 4 * * *'
+  workflow_dispatch:
 
 jobs:
-  update-edr:
+  update-data:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Git Repository auschecken
         uses: actions/checkout@v4
+
+      - name: Python vorbereiten
+        uses: actions/setup-python@v5
         with:
-          fetch-depth: 0
+          python-version: '3.10'
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Python dependencies
+      - name: Bibliotheken installieren
         run: |
-          python -m pip install --upgrade pip
-          pip install shapely lxml requests
+          pip install requests lxml beautifulsoup4 shapely
 
-      - name: Run converter script
-        working-directory: ${{ github.workspace }}
+      - name: Direkter Download der XML-Datei über DFS
         run: |
-          # The converter should fetch any remote AIXM files itself or read local inputs
-          python backend-data/convert_aixm_edr_to_geojson.py
-
-      - name: Commit and push generated GeoJSON (if changed)
-        env:
-          GIT_AUTHOR_NAME: github-actions[bot]
-          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
-        run: |
-          git config user.name "${GIT_AUTHOR_NAME}"
-          git config user.email "${GIT_AUTHOR_EMAIL}"
-          git add backend-data/edr_from_aixm.geojson || true
-          if ! git diff --cached --quiet; then
-            git commit -m "Auto-update EDR GeoJSON"
-            git push
+          echo "Lade Datei über wget herunter..."
+          # wget tut so, als sei es ein echter Browser
+          wget --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36" -O aixm_data.xml "https://aip.dfs.de/datasets/scripts/getItem.php?amdt=9999&content=ED_Airspace_StrokedBorders_2026-06-11_2026-06-11_snapshot.xml"
+          
+          # Kurz checken ob die Datei erfolgreich geladen und nicht leer ist
+          if [ -s aixm_data.xml ]; then
+            echo "Download erfolgreich, Dateigröße okay."
+            head -n 5 aixm_data.xml
           else
-            echo "No changes to commit"
+            echo "Fehler: Heruntergeladene Datei ist leer."
+            exit 1
           fi
+
+      - name: GeoJSON aus XML generieren
+        run: |
+          # Das Script braucht die Eingabedatei (aixm_data.xml, die wir im Schritt davor geladen haben)
+          # Und muss in die Zieldatei schreiben, die wir danach an GitHub & Windy übergeben (edr_from_aixm.geojson)
+          python convert_aixm_edr_to_geojson.py --input aixm_data.xml --output edr_from_aixm.geojson
+
+      - name: Neue GeoJSON pushen
+        run: |
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "action@github.com"
+          git add edr_from_aixm.geojson
+          git commit -m "Automatisches Luftraum Update (DFS)" || echo "Keine Änderungen vorhanden"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
