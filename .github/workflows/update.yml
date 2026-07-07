@@ -1,145 +1,48 @@
-name: Update EDR GeoJSONname: Update EDR GeoJSONname: Update EDR GeoJSON
+name: Update EDR GeoJSON
 
-
-
-on:on:
-
+on:
   schedule:
-
-    - cron: '0 3 * * *' # daily at 03:00 UTC  schedule:on:
-
+    - cron: '0 3 * * *'
   workflow_dispatch: {}
 
-    - cron: '0 3 * * *' # daily at 03:00 UTC  schedule:
-
 permissions:
+  contents: write
 
-  contents: write  workflow_dispatch: {}    - cron: '0 3 * * *' # daily at 03:00 UTC
-
-
-
-jobs:permissions:  workflow_dispatch: {}
-
+jobs:
   update-edr:
-
-    runs-on: ubuntu-latest  contents: write
-
+    runs-on: ubuntu-latest
     steps:
-
-      - name: Checkout repositorypermissions:
-
+      - name: Checkout repository
         uses: actions/checkout@v4
-
-        with:jobs:  contents: write
-
-          fetch-depth: 0 
-
-  update-edr:
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
-
-        uses: actions/setup-python@v4    runs-on: ubuntu-latestjobs:
-
+        uses: actions/setup-python@v4
         with:
+          python-version: '3.11'
 
-          python-version: '3.11'    steps:  update-edr:
-
-
-
-      - name: Install Python dependencies      - name: Checkout repository    runs-on: ubuntu-latest
-
+      - name: Install Python dependencies
         run: |
-
-          python -m pip install --upgrade pip        uses: actions/checkout@v4    steps:
-
+          python -m pip install --upgrade pip
           pip install shapely lxml requests
 
-        with:      - name: Checkout repository
-
       - name: Run DFS script & Download latest files
-
-        working-directory: ${{ github.workspace }}          fetch-depth: 0        uses: actions/checkout@v4
-
-        run: |
-
-          python backend-data/auto_fetch_and_convert.py        with:
-
-
-
-      - name: Commit and push generated GeoJSON (if changed)      - name: Set up Python          fetch-depth: 0
-
-        env:
-
-          GIT_AUTHOR_NAME: github-actions[bot]        uses: actions/setup-python@v4
-
-          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
-
-        run: |        with:      - name: Set up Python
-
-          git config user.name "${GIT_AUTHOR_NAME}"
-
-          git config user.email "${GIT_AUTHOR_EMAIL}"          python-version: '3.11'        uses: actions/setup-python@v4
-
-          git add backend-data/edr_from_aixm.geojson || true
-
-          if ! git diff --cached --quiet; then        with:
-
-            git commit -m "Auto-update EDR GeoJSON"
-
-            git push      - name: Install Python dependencies          python-version: '3.11'
-
-          else
-
-            echo "No changes to commit"        run: |
-
-          fi
-
-          python -m pip install --upgrade pip      - name: Install Python dependencies
-
-          pip install shapely lxml requests        run: |
-
-          python -m pip install --upgrade pip
-
-      - name: Run DFS script & Download latest files          pip install shapely lxml requests
-
         working-directory: ${{ github.workspace }}
-
-        run: |      - name: Run converter script
-
-          python backend-data/auto_fetch_and_convert.py        working-directory: ${{ github.workspace }}
-
         run: |
+          python backend-data/auto_fetch_and_convert.py
 
-      - name: Commit and push generated GeoJSON (if changed)          # The converter should fetch any remote AIXM files itself or read local inputs
-
-        env:          python backend-data/auto_fetch_and_convert.py
-
+      - name: Commit and push generated GeoJSON (if changed)
+        env:
           GIT_AUTHOR_NAME: github-actions[bot]
-
-          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com      - name: Commit and push generated GeoJSON (if changed)
-
-        run: |        env:
-
-          git config user.name "${GIT_AUTHOR_NAME}"          GIT_AUTHOR_NAME: github-actions[bot]
-
-          git config user.email "${GIT_AUTHOR_EMAIL}"          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
-
-          git add backend-data/edr_from_aixm.geojson || true        run: |
-
-          if ! git diff --cached --quiet; then          git config user.name "${GIT_AUTHOR_NAME}"
-
-            git commit -m "Auto-update EDR GeoJSON"          git config user.email "${GIT_AUTHOR_EMAIL}"
-
-            git push          git add backend-data/edr_from_aixm.geojson || true
-
-          else          if ! git diff --cached --quiet; then
-
-            echo "No changes to commit"            git commit -m "Auto-update EDR GeoJSON"
-
-          fi            git push
-
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          git config user.name "${GIT_AUTHOR_NAME}"
+          git config user.email "${GIT_AUTHOR_EMAIL}"
+          git add backend-data/edr_from_aixm.geojson || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Auto-update EDR GeoJSON"
+            git push
           else
             echo "No changes to commit"
           fi
-
-# Trigger actions
