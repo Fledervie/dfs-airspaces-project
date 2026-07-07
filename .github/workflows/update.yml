@@ -1,50 +1,98 @@
-name: Update EDR GeoJSONname: Update EDR GeoJSON
+name: Update EDR GeoJSONname: Update EDR GeoJSONname: Update EDR GeoJSON
 
-on:
 
-  schedule:on:
+
+on:on:
+
+  schedule:
+
+    - cron: '0 3 * * *' # daily at 03:00 UTC  schedule:on:
+
+  workflow_dispatch: {}
 
     - cron: '0 3 * * *' # daily at 03:00 UTC  schedule:
 
-  workflow_dispatch: {}    - cron: '0 3 * * *' # daily at 03:00 UTC
-
-permissions:  workflow_dispatch: {}
-
-  contents: write
-
 permissions:
 
-jobs:  contents: write
+  contents: write  workflow_dispatch: {}    - cron: '0 3 * * *' # daily at 03:00 UTC
+
+
+
+jobs:permissions:  workflow_dispatch: {}
 
   update-edr:
 
-    runs-on: ubuntu-latestjobs:
+    runs-on: ubuntu-latest  contents: write
 
-    steps:  update-edr:
+    steps:
 
-      - name: Checkout repository    runs-on: ubuntu-latest
+      - name: Checkout repositorypermissions:
 
-        uses: actions/checkout@v4    steps:
+        uses: actions/checkout@v4
+
+        with:jobs:  contents: write
+
+          fetch-depth: 0
+
+  update-edr:
+
+      - name: Set up Python
+
+        uses: actions/setup-python@v4    runs-on: ubuntu-latestjobs:
+
+        with:
+
+          python-version: '3.11'    steps:  update-edr:
+
+
+
+      - name: Install Python dependencies      - name: Checkout repository    runs-on: ubuntu-latest
+
+        run: |
+
+          python -m pip install --upgrade pip        uses: actions/checkout@v4    steps:
+
+          pip install shapely lxml requests
 
         with:      - name: Checkout repository
 
-          fetch-depth: 0        uses: actions/checkout@v4
+      - name: Run DFS script & Download latest files
 
-        with:
-
-      - name: Set up Python          fetch-depth: 0
-
-        uses: actions/setup-python@v4
-
-        with:      - name: Set up Python
-
-          python-version: '3.11'        uses: actions/setup-python@v4
-
-        with:
-
-      - name: Install Python dependencies          python-version: '3.11'
+        working-directory: ${{ github.workspace }}          fetch-depth: 0        uses: actions/checkout@v4
 
         run: |
+
+          python backend-data/auto_fetch_and_convert.py        with:
+
+
+
+      - name: Commit and push generated GeoJSON (if changed)      - name: Set up Python          fetch-depth: 0
+
+        env:
+
+          GIT_AUTHOR_NAME: github-actions[bot]        uses: actions/setup-python@v4
+
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+
+        run: |        with:      - name: Set up Python
+
+          git config user.name "${GIT_AUTHOR_NAME}"
+
+          git config user.email "${GIT_AUTHOR_EMAIL}"          python-version: '3.11'        uses: actions/setup-python@v4
+
+          git add backend-data/edr_from_aixm.geojson || true
+
+          if ! git diff --cached --quiet; then        with:
+
+            git commit -m "Auto-update EDR GeoJSON"
+
+            git push      - name: Install Python dependencies          python-version: '3.11'
+
+          else
+
+            echo "No changes to commit"        run: |
+
+          fi
 
           python -m pip install --upgrade pip      - name: Install Python dependencies
 
