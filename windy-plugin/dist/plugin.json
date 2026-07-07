@@ -9,8 +9,8 @@
   "desktopUI": "rhpane",
   "mobileUI": "fullscreen",
   "routerPath": "/dfs-airspaces",
-  "private": true,
-  "built": 1783449090423,
-  "builtReadable": "2026-07-07T18:31:30.423Z",
+  "private": false,
+  "built": 1783461208633,
+  "builtReadable": "2026-07-07T21:53:28.633Z",
   "screenshot": "screenshot.jpg"
 }

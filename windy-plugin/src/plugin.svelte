@@ -574,7 +574,7 @@
 
     async function checkForUpdates() {
         try {
-            const response = await fetch("https://raw.githubusercontent.com/Fledervie/dfs-airspace-data/main/edr_from_aixm.geojson", { cache: "no-store" });
+            const response = await fetch("https://raw.githubusercontent.com/Fledervie/dfs-airspaces-project/main/backend-data/edr_from_aixm.geojson", { cache: "no-store" });
             if (!response.ok) return;
 
             const text = await response.text();
@@ -659,7 +659,7 @@
 
         if (!hasDataLoaded) {
             // Da das Repo nun Public ist, laden wir superschnell über die Raw-URL.
-            const response = await fetch("https://raw.githubusercontent.com/Fledervie/dfs-airspace-data/main/edr_from_aixm.geojson");
+            const response = await fetch("https://raw.githubusercontent.com/Fledervie/dfs-airspaces-project/main/backend-data/edr_from_aixm.geojson");
             if (!response.ok) {
                 alert("Load error: " + response.status);
                 return;
@@ -739,8 +739,8 @@
 
     <div class="warning-banner">
         <strong>⚠️ WARNING - NOT FOR REAL NAVIGATION!</strong><br/>
-        Data source: DFS Deutsche Flugsicherung GmbH.<br/>
-        No guarantee for accuracy, completeness, or timeliness.
+        Mit freundlicher Genehmigung der DFS Deutsche Flugsicherung GmbH.<br/>
+        Nicht für navigatorische Zwecke nutzen. Keine Garantie für Richtigkeit, Vollständigkeit oder Aktualität.
     </div>
 
     <div class="credits-text">
