@@ -16,7 +16,13 @@ def find_latest_snapshot_url():
         # Suchen nach "ED_Airspace_StrokedBorders_YYYY-MM-DD_YYYY-MM-DD_snapshot.xml"
         # Die Seite nutzt oft JS-gesteuerten Download über `getItem.php?amdt=9999&content=...`
         pattern = r"(ED_Airspace_StrokedBorders_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}_snapshot\.xml)"
-        match = re.search(pattern, html)
+        
+        # We need to fetch the actual snapshot HTML to find it
+        snapshot_url = "https://aip.dfs.de/datasets/scripts/getAmdtData.php?amdt=9999"
+        req_snap = urllib.request.Request(snapshot_url, headers={'User-Agent': 'Mozilla/5.0'})
+        response_snap = urllib.request.urlopen(req_snap)
+        html_snap = response_snap.read().decode('utf-8')
+        match = re.search(pattern, html_snap)
         
         if match:
             filename = match.group(1)
@@ -58,8 +64,8 @@ def main():
         # Führe dein bestehendes Wandlungsscript aus:
         print("Running convert_aixm_edr_to_geojson.py ...")
         cmd = [
-            "python", 
-            "backend-data/convert_aixm_edr_to_geojson.py", 
+            sys.executable, 
+            "backend-data/convert_aixm_edr_to_geojson.py",
             "--input", dest_path, 
             "--output", "backend-data/edr_from_aixm.geojson"
         ]
