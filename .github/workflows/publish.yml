@@ -48,7 +48,7 @@ jobs:
             -F "plugin_archive=@./plugin.tar" \
             -o curl_out.txt)
             
-          if [ "$RESPONSE" = "200" ]; then
+          if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "201" ]; then
             echo "Successfully published!"
             cat curl_out.txt
           else
