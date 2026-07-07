@@ -739,7 +739,7 @@
 
     <div class="warning-banner">
         <strong>⚠️ WARNING - NOT FOR REAL NAVIGATION!</strong><br/>
-        Courtesy of DFS Deutsche Flugsicherung GmbH.<br/>
+        With kind permission of DFS Deutsche Flugsicherung GmbH.<br/>
         Do not use for navigational purposes. No guarantee for accuracy, completeness, or timeliness.
     </div>
 
