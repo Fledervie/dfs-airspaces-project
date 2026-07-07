@@ -7,7 +7,7 @@ const config: ExternalPluginConfig = {
     title: 'DFS Airspaces',
     description: 'DFS Airspaces',
     author: 'Fledervie',
-    repository: 'https://github.com/Fledervie/dfs-airspace-data',
+    repository: 'https://github.com/Fledervie/dfs-airspaces-project',
     desktopUI: 'rhpane',
     mobileUI: 'fullscreen',
     routerPath: '/dfs-airspaces',

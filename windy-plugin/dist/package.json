@@ -1,7 +1,7 @@
 {
-    "name": "windy-plugin-template",
-    "version": "5.0.1",
-    "description": "Template for developing Windy Plugins",
+    "name": "windy-plugin-dfs-airspaces",
+    "version": "0.1.0",
+    "description": "DFS Airspaces Plugin by Fledervie",
     "main": "dist/plugin.min.js",
     "type": "module",
     "scripts": {
@@ -20,19 +20,19 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/windycom/windy-plugin-template.git"
+        "url": "git+https://github.com/Fledervie/dfs-airspaces-project.git"
     },
     "keywords": [
         "windy",
         "windy.com",
         "plugins"
     ],
-    "author": "Windyty, S.E.",
+    "author": "Fledervie",
     "license": "ISC",
     "bugs": {
-        "url": "https://github.com/windycom/windy-plugin-template/issues"
+        "url": "https://github.com/Fledervie/dfs-airspaces-project/issues"
     },
-    "homepage": "https://docs.windy-plugins.com/",
+    "homepage": "https://github.com/Fledervie/dfs-airspaces-project",
     "dependencies": {
         "@windycom/plugin-devtools": "^3.0.3"
     }

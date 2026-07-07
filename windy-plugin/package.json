@@ -20,7 +20,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Fledervie/dfs-airspace-data.git"
+        "url": "git+https://github.com/Fledervie/dfs-airspaces-project.git"
     },
     "keywords": [
         "windy",
@@ -30,9 +30,9 @@
     "author": "Fledervie",
     "license": "ISC",
     "bugs": {
-        "url": "https://github.com/Fledervie/dfs-airspace-data/issues"
+        "url": "https://github.com/Fledervie/dfs-airspaces-project/issues"
     },
-    "homepage": "https://github.com/Fledervie/dfs-airspace-data",
+    "homepage": "https://github.com/Fledervie/dfs-airspaces-project",
     "dependencies": {
         "@windycom/plugin-devtools": "^3.0.3"
     }

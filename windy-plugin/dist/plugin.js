@@ -5,13 +5,13 @@ const __pluginConfig =  {
   "title": "DFS Airspaces",
   "description": "DFS Airspaces",
   "author": "Fledervie",
-  "repository": "https://github.com/Fledervie/dfs-airspace-data",
+  "repository": "https://github.com/Fledervie/dfs-airspaces-project",
   "desktopUI": "rhpane",
   "mobileUI": "fullscreen",
   "routerPath": "/dfs-airspaces",
   "private": true,
-  "built": 1781974081340,
-  "builtReadable": "2026-06-20T16:48:01.340Z",
+  "built": 1783449090414,
+  "builtReadable": "2026-07-07T18:31:30.414Z",
   "screenshot": "screenshot.jpg"
 };
 
