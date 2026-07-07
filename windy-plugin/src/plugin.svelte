@@ -10,6 +10,7 @@
     let layers: Record<string, any> = (window as any).__dfsAirspacesLayers || {};
     let highlightLayer: any = (window as any).__dfsAirspacesHighlight || null;
 
+    let updateMessage = "";
     let foundAirspaces: any[] = [];
     let selectedFeature: any = null;
 
@@ -242,7 +243,7 @@
 
     function featureId(feature: any): string {
         const p = feature?.properties || {};
-        const fid = feature?.id ?? p.id ?? p.uuid ?? p.gml_id ?? p.identifier;
+        const fid = feature?.id ?? p.id ?? p.source_uuid ?? p.uuid ?? p.gml_id ?? p.identifier;
         if (fid) return String(fid);
 
         // stronger fallback to avoid collisions in Favorites
@@ -571,11 +572,70 @@
     let hasDataLoaded = !!allData;
     let infoPopup: any = null;
 
+    async function checkForUpdates() {
+        try {
+            const response = await fetch("https://raw.githubusercontent.com/Fledervie/dfs-airspace-data/main/edr_from_aixm.geojson", { cache: "no-store" });
+            if (!response.ok) return;
+
+            const text = await response.text();
+            // Compare string lengths or a specific property to detect changes quickly without deep parsing 
+            // In a real scenario, you'd compare an ETag or Last-Modified header, but GitHub raw doesn't always provide reliable ETags
+            if (allData && (window as any).__dfsAirspacesRawData) {
+                if (text !== (window as any).__dfsAirspacesRawData) {
+                    // Update detected
+                    console.log("DFS Airspaces Update detected!");
+                    updateMessage = "DFS Airspaces wurden aktualisiert! Neue Daten wurden nahtlos geladen.";
+                    
+                    const newData = JSON.parse(text);
+                    allData = newData;
+                    (window as any).__dfsAirspacesAllData = allData;
+                    (window as any).__dfsAirspacesRawData = text;
+
+                    // Clean up favorites against new data
+                    const valid = new Set(allData.features.map((f: any) => featureId(f)));
+                    setFavoriteIds(favoriteIds.filter(id => valid.has(id)));
+
+                    // Rebuild layers with new data
+                    layers.restricted = makeLayer("restricted", "#000000", 0.10);
+                    layers.danger = makeLayer("danger", "#000000", 0.08);
+                    layers.protect = makeLayer("protect", "#000000", 0.08);
+                    layers.ctr = makeLayer("ctr", "#000000", 0.06);
+                    layers.cta_uta = makeLayer("cta_uta", "#000000", 0.04);
+                    layers.rmz = makeLayer("rmz", "#000000", 0.05);
+                    layers.tmz = makeLayer("tmz", "#000000", 0.05);
+                    layers.atz = makeLayer("atz", "#000000", 0.06);
+                    layers.fis = makeLayer("fis", "#000000", 0.03);
+                    layers.sectors = makeLayer("sectors", "#000000", 0.03);
+                    layers.glider = makeLayer("glider", "#000000", 0.05);
+                    layers.uav = makeLayer("uav", "#000000", 0.05);
+                    layers.prohibited = makeLayer("prohibited", "#8b0000", 0.07);
+                    layers.temporary = makeLayer("temporary", "#ff8c00", 0.05);
+                    layers.nav_radio = makeLayer("nav_radio", "#1e90ff", 0.05);
+                    layers.military = makeLayer("military", "#556b2f", 0.05);
+                    layers.other = makeLayer("other", "#555555", 0.02);
+                    (window as any).__dfsAirspacesLayers = layers;
+
+                    updateLayers();
+                    updateSearch();
+                    
+                    setTimeout(() => { updateMessage = ""; }, 8000);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to check for airspace updates:", e);
+        }
+    }
+
+    let updateInterval: any;
+
     function ensureRuntimeAttached() {
         if (!isRuntimeActive) {
             map.on("click", handleMapClick);
             map.on("contextmenu", handleMapContextMenu);
             isRuntimeActive = true;
+            
+            // Check for updates every 4 hours while running
+            updateInterval = setInterval(checkForUpdates, 1000 * 60 * 60 * 4);
         }
     }
 
@@ -584,6 +644,7 @@
             map.off("click", handleMapClick);
             map.off("contextmenu", handleMapContextMenu);
             isRuntimeActive = false;
+            if (updateInterval) clearInterval(updateInterval);
         }
         removeAllLayers();
         if (infoPopup) {
@@ -604,9 +665,9 @@
                 return;
             }
 
-            allData = await response.json();
-            (window as any).__dfsAirspacesAllData = allData;
-
+            const text = await response.text();
+            (window as any).__dfsAirspacesRawData = text;
+            allData = JSON.parse(text);
             layers.restricted = makeLayer("restricted", "#000000", 0.10);
             layers.danger = makeLayer("danger", "#000000", 0.08);
             layers.protect = makeLayer("protect", "#000000", 0.08);
@@ -624,9 +685,17 @@
             layers.nav_radio = makeLayer("nav_radio", "#1e90ff", 0.05);
             layers.military = makeLayer("military", "#556b2f", 0.05);
             layers.other = makeLayer("other", "#555555", 0.02);
-
+            
             (window as any).__dfsAirspacesLayers = layers;
             hasDataLoaded = true;
+            
+            // Initial favorite cleanup against loaded data
+            const valid = new Set(allData.features.map((f: any) => featureId(f)));
+            setFavoriteIds(favoriteIds.filter(id => valid.has(id)));
+        } else {
+            // Wenn das Plugin einfach nur geschlossen und wieder geöffnet wurde (hasDataLoaded = true),
+            // prüfen wir trotzdem einmal im Hintergrund sofort ob es ein Update gibt.
+            checkForUpdates();
         }
 
         ensureRuntimeAttached();
@@ -661,6 +730,13 @@
 <div class="plugin__content">
     <h2>DFS Airspaces</h2>
     
+    {#if updateMessage}
+        <div class="update-banner">
+            <strong>✓ UPDATE</strong><br/>
+            {updateMessage}
+        </div>
+    {/if}
+
     <div class="warning-banner">
         <strong>⚠️ WARNING - NOT FOR REAL NAVIGATION!</strong><br/>
         Data source: DFS Deutsche Flugsicherung GmbH.<br/>
@@ -858,6 +934,23 @@
     label {
         display: block;
         margin: 7px 0;
+    }
+
+    .update-banner {
+        background-color: rgba(60, 255, 60, 0.15);
+        border-left: 4px solid #3cff3c;
+        border-radius: 4px;
+        padding: 8px 10px;
+        margin-bottom: 12px;
+        font-size: 11px;
+        line-height: 1.4;
+        color: #ccffcc;
+        animation: fadein 0.5s;
+    }
+
+    @keyframes fadein {
+        from { opacity: 0; }
+        to   { opacity: 1; }
     }
 
     .warning-banner {
