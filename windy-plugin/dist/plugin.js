@@ -1,6 +1,6 @@
 const __pluginConfig =  {
   "name": "windy-plugin-dfs-airspaces",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "icon": "✈",
   "title": "DFS Airspaces",
   "description": "DFS Airspaces",
@@ -10,8 +10,8 @@ const __pluginConfig =  {
   "mobileUI": "fullscreen",
   "routerPath": "/dfs-airspaces",
   "private": false,
-  "built": 1783461402325,
-  "builtReadable": "2026-07-07T21:56:42.325Z",
+  "built": 1783461812284,
+  "builtReadable": "2026-07-07T22:03:32.284Z",
   "screenshot": "screenshot.jpg"
 };
 

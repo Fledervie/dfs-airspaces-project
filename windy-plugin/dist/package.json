@@ -1,6 +1,6 @@
 {
     "name": "windy-plugin-dfs-airspaces",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "DFS Airspaces Plugin by Fledervie",
     "main": "dist/plugin.min.js",
     "type": "module",
