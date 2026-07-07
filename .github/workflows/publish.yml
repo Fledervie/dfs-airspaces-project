@@ -1,0 +1,58 @@
+name: Publish Windy Plugin
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  publish-plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: windy-plugin/package-lock.json || true
+
+      - name: Install dependencies
+        working-directory: ./windy-plugin
+        run: npm install
+
+      - name: Build plugin
+        working-directory: ./windy-plugin
+        run: npm run build
+
+      - name: Create Plugin Archive & Publish
+        working-directory: ./windy-plugin
+        env:
+          WINDY_API_KEY: ${{ secrets.WINDY_API_KEY }}
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          REPOSITORY="https://github.com/${{ github.repository }}"
+          OWNER="${{ github.repository_owner }}"
+
+          cd dist
+          echo "Creating plugin archive..."
+          echo "{\"repositoryName\": \"${REPOSITORY}\", \"commitSha\": \"${SHA}\", \"repositoryOwner\": \"${OWNER}\"}" > ./plugin-info.json
+          jq -s '.[0] * .[1]' ./plugin.json ./plugin-info.json > ./plugin2.json
+          rm ./plugin.json && mv ./plugin2.json ./plugin.json
+          tar cf ./plugin.tar --exclude='./plugin.tar' .
+          echo "Publishing plugin..."
+          
+          # HTTP Request hiding the output body on success but capturing errors
+          RESPONSE=$(curl -s -w "%{http_code}" -XPOST 'https://node.windy.com/plugins/v1.0/upload' \
+            -H "x-windy-api-key: ${WINDY_API_KEY}" \
+            -F "plugin_archive=@./plugin.tar" \
+            -o curl_out.txt)
+            
+          if [ "$RESPONSE" = "200" ]; then
+            echo "Successfully published!"
+            cat curl_out.txt
+          else
+            echo "Failed with code $RESPONSE"
+            cat curl_out.txt
+            exit 1
+          fi
