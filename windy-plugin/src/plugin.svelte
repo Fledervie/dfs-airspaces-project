@@ -739,8 +739,8 @@
 
     <div class="warning-banner">
         <strong>⚠️ WARNING - NOT FOR REAL NAVIGATION!</strong><br/>
-        Mit freundlicher Genehmigung der DFS Deutsche Flugsicherung GmbH.<br/>
-        Nicht für navigatorische Zwecke nutzen. Keine Garantie für Richtigkeit, Vollständigkeit oder Aktualität.
+        Courtesy of DFS Deutsche Flugsicherung GmbH.<br/>
+        Do not use for navigational purposes. No guarantee for accuracy, completeness, or timeliness.
     </div>
 
     <div class="credits-text">

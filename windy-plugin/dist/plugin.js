@@ -10,8 +10,8 @@ const __pluginConfig =  {
   "mobileUI": "fullscreen",
   "routerPath": "/dfs-airspaces",
   "private": false,
-  "built": 1783461208620,
-  "builtReadable": "2026-07-07T21:53:28.620Z",
+  "built": 1783461271555,
+  "builtReadable": "2026-07-07T21:54:31.555Z",
   "screenshot": "screenshot.jpg"
 };
 
@@ -1714,8 +1714,8 @@ function create_fragment(ctx) {
 			div0 = element("div");
 
 			div0.innerHTML = `<strong>⚠️ WARNING - NOT FOR REAL NAVIGATION!</strong><br/>
-        Mit freundlicher Genehmigung der DFS Deutsche Flugsicherung GmbH.<br/>
-        Nicht für navigatorische Zwecke nutzen. Keine Garantie für Richtigkeit, Vollständigkeit oder Aktualität.`;
+        Courtesy of DFS Deutsche Flugsicherung GmbH.<br/>
+        Do not use for navigational purposes. No guarantee for accuracy, completeness, or timeliness.`;
 
 			t6 = space();
 			div1 = element("div");
