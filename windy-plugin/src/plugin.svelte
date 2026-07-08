@@ -4,8 +4,7 @@
 
     const L = (window as any).L;
 
-    // Wir lagern allData und layers in globale Variablen aus,
-    // damit sie das Schließen und Öffnen der Svelte-Komponente überleben.
+    // Store allData and layers globally so they survive closing and reopening the Svelte component.
     let allData: any = (window as any).__dfsAirspacesAllData || null;
     let layers: Record<string, any> = (window as any).__dfsAirspacesLayers || {};
     let highlightLayer: any = (window as any).__dfsAirspacesHighlight || null;
@@ -17,7 +16,7 @@
     let searchText = "";
     let searchResults: any[] = [];
 
-    // UI State auch global persistieren, sonst springen die Regler auf default zurück!
+    // Persist UI state globally so toggles do not jump back to defaults.
     let uiState = (window as any).__dfsAirspacesUI || {};
 
     let showRestricted = uiState.showRestricted ?? true;
@@ -115,6 +114,104 @@
         "other"
     ];
 
+    const groupMeta: Record<string, { label: string; color: string; fillOpacity: number }> = {
+        restricted: { label: "Restricted / TRA / ED-R", color: "#000000", fillOpacity: 0.10 },
+        danger: { label: "Danger Areas", color: "#000000", fillOpacity: 0.08 },
+        protect: { label: "Protective Areas", color: "#000000", fillOpacity: 0.08 },
+        ctr: { label: "CTR (Control Zone)", color: "#000000", fillOpacity: 0.06 },
+        cta_uta: { label: "CTA / UTA", color: "#000000", fillOpacity: 0.04 },
+        rmz: { label: "RMZ", color: "#000000", fillOpacity: 0.05 },
+        tmz: { label: "TMZ", color: "#000000", fillOpacity: 0.05 },
+        atz: { label: "ATZ", color: "#000000", fillOpacity: 0.06 },
+        fis: { label: "Flight Information Sectors (FIS)", color: "#000000", fillOpacity: 0.03 },
+        sectors: { label: "Airspace Sectors", color: "#000000", fillOpacity: 0.03 },
+        glider: { label: "Glider Operating Areas", color: "#000000", fillOpacity: 0.05 },
+        uav: { label: "UAS / UAV Operating Areas", color: "#000000", fillOpacity: 0.05 },
+        prohibited: { label: "Prohibited Areas", color: "#8b0000", fillOpacity: 0.07 },
+        temporary: { label: "Temporary / NOTAM-based Airspace", color: "#ff8c00", fillOpacity: 0.05 },
+        nav_radio: { label: "Navigation / Radio-related Airspace", color: "#1e90ff", fillOpacity: 0.05 },
+        military: { label: "Military Activity Areas", color: "#556b2f", fillOpacity: 0.05 },
+        other: { label: "Other / Unclassified", color: "#555555", fillOpacity: 0.02 }
+    };
+
+    function defaultGroupColors(): Record<string, string> {
+        return Object.fromEntries(groups.map(group => [group, groupMeta[group].color]));
+    }
+
+    function isHexColor(value: any): value is string {
+        return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value);
+    }
+
+    function loadGroupColors(): Record<string, string> {
+        const defaults = defaultGroupColors();
+        const cached = (window as any).__dfsAirspacesGroupColors;
+
+        if (cached && typeof cached === "object") {
+            for (const group of groups) {
+                if (isHexColor(cached[group])) defaults[group] = cached[group];
+            }
+        }
+
+        try {
+            const parsed = JSON.parse(localStorage.getItem("airspace-group-colors") || "{}");
+            if (parsed && typeof parsed === "object") {
+                for (const group of groups) {
+                    if (isHexColor(parsed[group])) defaults[group] = parsed[group];
+                }
+            }
+        } catch {}
+
+        return defaults;
+    }
+
+    let groupColors: Record<string, string> = loadGroupColors();
+
+    function saveGroupColors() {
+        (window as any).__dfsAirspacesGroupColors = groupColors;
+        localStorage.setItem("airspace-group-colors", JSON.stringify(groupColors));
+    }
+
+    function groupLabel(group: string): string {
+        return groupMeta[group]?.label || group;
+    }
+
+    function rebuildLayersFromData() {
+        if (!allData) return;
+
+        layers = {};
+        for (const group of groups) {
+            const meta = groupMeta[group];
+            layers[group] = makeLayer(group, groupColors[group] || meta.color, meta.fillOpacity);
+        }
+        (window as any).__dfsAirspacesLayers = layers;
+    }
+
+    function refreshLayerColors() {
+        if (!allData) return;
+        removeAllLayers();
+        rebuildLayersFromData();
+        updateLayers();
+    }
+
+    function handleColorChange(group: string, color: string) {
+        if (!isHexColor(color)) return;
+        groupColors = { ...groupColors, [group]: color };
+        saveGroupColors();
+        refreshLayerColors();
+    }
+
+    function handleColorInput(group: string, e: Event) {
+        e.stopPropagation();
+        const input = e.currentTarget as HTMLInputElement;
+        handleColorChange(group, input.value);
+    }
+
+    function resetGroupColors() {
+        groupColors = defaultGroupColors();
+        saveGroupColors();
+        refreshLayerColors();
+    }
+
     function airspaceType(feature: any): string {
         return feature.properties.local_type || feature.properties.airspace_type || "";
     }
@@ -150,11 +247,11 @@
     }
 
     function isGroupVisible(group: string): boolean {
-        // Wenn "Nur Favoriten" aktiv ist, müssen wir alle Layer-Gruppen für die Karte aktivieren,
-        // da das Filter-System dann nur noch nach Favoriten-Status filtert, unabhängig von der Gruppe.
+        // If "Show Favorites Only" is active, all layer groups must be enabled for the map
+        // because filtering then only depends on favorite status, regardless of group.
         if (showFavoritesOnly) return true;
 
-        // Sammelschalter zuerst prüfen
+        // Check aggregate toggles first.
         if (showSpecialZones && (group === "rmz" || group === "tmz" || group === "atz")) return true;
         if (showInfoAreas && (group === "fis" || group === "sectors")) return true;
         if (showSportUas && (group === "glider" || group === "uav")) return true;
@@ -519,6 +616,7 @@
         return L.geoJSON(filtered, {
             style: {
                 color,
+                fillColor: color,
                 weight: 2,
                 opacity: 0.95,
                 fillOpacity
@@ -584,7 +682,7 @@
                 if (text !== (window as any).__dfsAirspacesRawData) {
                     // Update detected
                     console.log("DFS Airspaces Update detected!");
-                    updateMessage = "DFS Airspaces wurden aktualisiert! Neue Daten wurden nahtlos geladen.";
+                    updateMessage = "DFS Airspaces were updated. New data was loaded seamlessly.";
                     
                     const newData = JSON.parse(text);
                     allData = newData;
@@ -595,27 +693,8 @@
                     const valid = new Set(allData.features.map((f: any) => featureId(f)));
                     setFavoriteIds(favoriteIds.filter(id => valid.has(id)));
 
-                    // Rebuild layers with new data
-                    layers.restricted = makeLayer("restricted", "#000000", 0.10);
-                    layers.danger = makeLayer("danger", "#000000", 0.08);
-                    layers.protect = makeLayer("protect", "#000000", 0.08);
-                    layers.ctr = makeLayer("ctr", "#000000", 0.06);
-                    layers.cta_uta = makeLayer("cta_uta", "#000000", 0.04);
-                    layers.rmz = makeLayer("rmz", "#000000", 0.05);
-                    layers.tmz = makeLayer("tmz", "#000000", 0.05);
-                    layers.atz = makeLayer("atz", "#000000", 0.06);
-                    layers.fis = makeLayer("fis", "#000000", 0.03);
-                    layers.sectors = makeLayer("sectors", "#000000", 0.03);
-                    layers.glider = makeLayer("glider", "#000000", 0.05);
-                    layers.uav = makeLayer("uav", "#000000", 0.05);
-                    layers.prohibited = makeLayer("prohibited", "#8b0000", 0.07);
-                    layers.temporary = makeLayer("temporary", "#ff8c00", 0.05);
-                    layers.nav_radio = makeLayer("nav_radio", "#1e90ff", 0.05);
-                    layers.military = makeLayer("military", "#556b2f", 0.05);
-                    layers.other = makeLayer("other", "#555555", 0.02);
-                    (window as any).__dfsAirspacesLayers = layers;
-
-                    updateLayers();
+                    // Rebuild layers with new data and the current custom colors.
+                    refreshLayerColors();
                     updateSearch();
                     
                     setTimeout(() => { updateMessage = ""; }, 8000);
@@ -654,11 +733,11 @@
     }
 
     onMount(async () => {
-        // State immer beim Öffnen sicherheitshalber laden, falls sich die Daten geändert haben
+        // Always load state when opening, in case the data changed.
         loadFavorites();
 
         if (!hasDataLoaded) {
-            // Da das Repo nun Public ist, laden wir superschnell über die Raw-URL.
+            // The repository is public, so loading through the raw URL is quick.
             const response = await fetch("https://raw.githubusercontent.com/Fledervie/dfs-airspaces-project/main/backend-data/edr_from_aixm.geojson");
             if (!response.ok) {
                 alert("Load error: " + response.status);
@@ -668,38 +747,20 @@
             const text = await response.text();
             (window as any).__dfsAirspacesRawData = text;
             allData = JSON.parse(text);
-            layers.restricted = makeLayer("restricted", "#000000", 0.10);
-            layers.danger = makeLayer("danger", "#000000", 0.08);
-            layers.protect = makeLayer("protect", "#000000", 0.08);
-            layers.ctr = makeLayer("ctr", "#000000", 0.06);
-            layers.cta_uta = makeLayer("cta_uta", "#000000", 0.04);
-            layers.rmz = makeLayer("rmz", "#000000", 0.05);
-            layers.tmz = makeLayer("tmz", "#000000", 0.05);
-            layers.atz = makeLayer("atz", "#000000", 0.06);
-            layers.fis = makeLayer("fis", "#000000", 0.03);
-            layers.sectors = makeLayer("sectors", "#000000", 0.03);
-            layers.glider = makeLayer("glider", "#000000", 0.05);
-            layers.uav = makeLayer("uav", "#000000", 0.05);
-            layers.prohibited = makeLayer("prohibited", "#8b0000", 0.07);
-            layers.temporary = makeLayer("temporary", "#ff8c00", 0.05);
-            layers.nav_radio = makeLayer("nav_radio", "#1e90ff", 0.05);
-            layers.military = makeLayer("military", "#556b2f", 0.05);
-            layers.other = makeLayer("other", "#555555", 0.02);
-            
-            (window as any).__dfsAirspacesLayers = layers;
+            (window as any).__dfsAirspacesAllData = allData;
+            rebuildLayersFromData();
             hasDataLoaded = true;
             
             // Initial favorite cleanup against loaded data
             const valid = new Set(allData.features.map((f: any) => featureId(f)));
             setFavoriteIds(favoriteIds.filter(id => valid.has(id)));
         } else {
-            // Wenn das Plugin einfach nur geschlossen und wieder geöffnet wurde (hasDataLoaded = true),
-            // prüfen wir trotzdem einmal im Hintergrund sofort ob es ein Update gibt.
+            // If the plugin was only closed and reopened, check once in the background for updates.
             checkForUpdates();
         }
 
         ensureRuntimeAttached();
-        updateLayers();
+        refreshLayerColors();
 
         const bounds = layers.restricted?.getBounds?.();
         if (bounds && bounds.isValid()) map.fitBounds(bounds);
@@ -708,9 +769,8 @@
     });
 
     onDestroy(() => {
-        // Die Karte NICHT komplett zerstören und Ebenen NICHT entfernen,
-        // wenn das Plugin temporär in den Hintergrund rückt.
-        // So bleiben die gesetzten Layer auf der Karte aktiv.
+        // Do not fully destroy the map or remove layers when the plugin temporarily moves
+        // into the background. This keeps the selected layers active on the map.
         // window.removeEventListener("beforeunload", destroyRuntime);
     });
 
@@ -750,7 +810,7 @@
     <input
     class="search-box"
     type="text"
-    placeholder="Suche: EDR201, TRA Friesland, RMZ..."
+    placeholder="Search: EDR201, TRA Friesland, RMZ..."
     bind:value={searchText}
     on:input={(e) => {
         e.stopPropagation();
@@ -824,9 +884,9 @@
 
     <div class="info-box">
         {#if foundAirspaces.length === 0}
-            <p>Klicke auf die Karte, um Lufträume an dieser Position anzuzeigen.</p>
+            <p>Click the map to show airspaces at that position.</p>
         {:else}
-            <p><b>Gefundene Lufträume: {foundAirspaces.length}</b></p>
+            <p><b>Found airspaces: {foundAirspaces.length}</b></p>
 
             {#each foundAirspaces.slice(0, 30) as feature, index (featureId(feature))}
                 <div class="result-row">
@@ -852,10 +912,10 @@
             <b>{labelFor(selectedFeature)}</b><br />
             {selectedFeature.properties.name || "-"}<br /><br />
 
-            Typ: {selectedFeature.properties.local_type || selectedFeature.properties.airspace_type || "-"}<br />
-            Kategorie: {selectedFeature.properties.category || "-"}<br />
-            Untergrenze: {selectedFeature.properties.lower_limit || "-"}<br />
-            Obergrenze: {selectedFeature.properties.upper_limit || "-"}<br />
+            Type: {selectedFeature.properties.local_type || selectedFeature.properties.airspace_type || "-"}<br />
+            Category: {selectedFeature.properties.category || "-"}<br />
+            Lower limit: {selectedFeature.properties.lower_limit || "-"}<br />
+            Upper limit: {selectedFeature.properties.upper_limit || "-"}<br />
             <button
                 class="fav-btn"
                 class:active={isFavorite(selectedFeature)}
@@ -923,6 +983,38 @@
             <label><input type="checkbox" bind:checked={showSportUas} on:change={handleToggleChange} /> Recreational/Unmanned Aggregate (Glider/UAV)</label>
         </div>
     </details>
+
+    <details class="cat-panel">
+        <summary class="cat-header">Customize Colors</summary>
+        <div class="cat-body">
+            <div class="color-grid">
+                {#each groups as group}
+                    <label class="color-row">
+                        <span>{groupLabel(group)}</span>
+                        <input
+                            type="color"
+                            value={groupColors[group]}
+                            title={`Color for ${groupLabel(group)}`}
+                            on:input={(e) => handleColorInput(group, e)}
+                            on:click={(e) => e.stopPropagation()}
+                        />
+                    </label>
+                {/each}
+            </div>
+            <button class="reset-colors-btn" on:click={resetGroupColors}>Restore default colors</button>
+        </div>
+    </details>
+
+    <div class="help-box">
+        <b>How to use</b>
+        <ul>
+            <li>Left-click the map to list all active airspaces at that position.</li>
+            <li>Right-click the map to select the top result directly, highlight it in yellow, and open an info popup.</li>
+            <li>Use the star button to add or remove favorites. New favorites automatically make their category visible.</li>
+            <li>In Favorites, enable "Show Favorites Only" to display only saved areas.</li>
+            <li>Search also finds hidden areas, so you can still select them or save them as favorites.</li>
+        </ul>
+    </div>
 </div>
 
 <style>
@@ -1127,5 +1219,67 @@
 
     .favorite-row {
         margin-bottom: 6px;
+    }
+
+    .color-grid {
+        display: grid;
+        gap: 6px;
+    }
+
+    .color-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 42px;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        min-height: 30px;
+        font-size: 12px;
+    }
+
+    .color-row span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .color-row input[type="color"] {
+        width: 38px;
+        height: 26px;
+        padding: 0;
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 5px;
+        background: transparent;
+        cursor: pointer;
+    }
+
+    .reset-colors-btn {
+        width: 100%;
+        margin-top: 10px;
+        padding: 6px;
+        border-radius: 5px;
+        border: 1px solid rgba(255,255,255,0.25);
+        background: rgba(255,255,255,0.08);
+        color: inherit;
+        cursor: pointer;
+        font-size: 11px;
+        text-align: center;
+    }
+
+    .help-box {
+        margin-top: 12px;
+        padding: 9px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(255,255,255,0.06);
+        font-size: 11px;
+        line-height: 1.4;
+    }
+
+    .help-box ul {
+        margin: 6px 0 0 16px;
+        padding: 0;
+    }
+
+    .help-box li {
+        margin: 4px 0;
     }
 </style>
